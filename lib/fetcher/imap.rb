@@ -42,11 +42,21 @@ module Fetcher
         begin
           process_message(msg)
           add_to_processed_folder(uid) if @processed_folder
-        rescue
+        rescue => e
+          $stderr.puts e.inspect
+          $stderr.puts e.backtrace
           handle_bogus_message(msg)
         end
         # Mark message as deleted 
         @connection.uid_store(uid, "+FLAGS", [:Seen, :Deleted])
+      end
+    end
+    
+    def copy_bogus_messages_back_to_inbox
+      @connection.select(@error_folder)
+      @connection.uid_search(['ALL']).each do |uid|
+        msg = @connection.uid_fetch(uid,'RFC822').first.attr['RFC822']
+        @connection.append("INBOX", msg)
       end
     end
     
@@ -61,6 +71,8 @@ module Fetcher
       @connection.expunge
       @connection.logout
       @connection.disconnect
+    rescue Errno::ENOTCONN
+      true
     end
     
     def add_to_processed_folder(uid)

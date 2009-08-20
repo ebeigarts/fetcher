@@ -27,7 +27,9 @@ module Fetcher
         @connection.each_mail do |msg|
           begin
             process_message(msg.pop)
-          rescue
+          rescue => e
+            $stderr.puts e.inspect
+            $stderr.puts e.backtrace
             handle_bogus_message(msg.pop)
           end
           # Delete message from server
